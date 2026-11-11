@@ -2,6 +2,7 @@ from fastapi import FastAPI,HTTPException
 from pydantic import BaseModel,Field
 from app.providers import discover
 from app.research import synthesize_report
+from app.integrations import integration_status
 app=FastAPI(title="Aster Research API",version="0.2.0")
 class SearchRequest(BaseModel):
  query:str=Field(min_length=3,max_length=500)
@@ -13,6 +14,8 @@ class ReportRequest(BaseModel):
 async def health():return {"status":"ok","service":"research-api","version":"0.2.0"}
 @app.get("/api/v1/capabilities")
 async def capabilities():return {"academic_search":["Crossref","OpenAlex","PubMed"],"report_synthesis":"requires OPENAI_API_KEY","pdf_full_text_qa":"not_enabled","agent_frameworks":[],"clinical_inference":"disabled"}
+@app.get("/api/v1/integrations")
+async def integrations():return integration_status()
 @app.post("/api/v1/search")
 async def search(req:SearchRequest):
  try:return await discover(req.query,req.limit)
