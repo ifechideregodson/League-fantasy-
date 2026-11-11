@@ -1,4 +1,7 @@
-from fastapi import FastAPI,HTTPException,UploadFile,File,Form
+from fastapi import FastAPI,HTTPException,UploadFile,File,Form,Request
+from starlette.responses import JSONResponse
+import hmac
+import os
 from pydantic import BaseModel,Field
 from app.providers import discover
 from app.research import synthesize_report
@@ -6,6 +9,17 @@ from app.integrations import integration_status
 from app.engines import run_gpt_researcher,run_storm,answer_paperqa
 
 app=FastAPI(title="Aster Research API",version="0.3.0")
+
+@app.middleware("http")
+async def protect_api(request: Request, call_next):
+ if request.url.path.startswith("/api/v1/"):
+  expected=os.getenv("RESEARCH_API_TOKEN")
+  supplied=request.headers.get("authorization","")
+  if not expected:
+   return JSONResponse({"detail":"Research API access token is not configured."},status_code=503)
+  if not hmac.compare_digest(supplied, f"Bearer {expected}"):
+   return JSONResponse({"detail":"Unauthorized."},status_code=401)
+ return await call_next(request)
 
 class SearchRequest(BaseModel):
  query:str=Field(min_length=3,max_length=500)
