@@ -4,7 +4,8 @@ export const runtime = "nodejs";
 export const maxDuration = 300;
 
 export async function POST(request: NextRequest) {
-  const base = process.env.RESEARCH_API_URL;
+  const rawBase = process.env.RESEARCH_API_URL;
+  const base = rawBase ? (rawBase.startsWith("http://") || rawBase.startsWith("https://") ? rawBase : `http://${rawBase}`) : undefined;
   if (!base) return NextResponse.json({ error: "Research API is not configured." }, { status: 503 });
   const incoming = await request.formData();
   const file = incoming.get("file");
