@@ -2,7 +2,7 @@ services:
   - type: web
     name: aster-research-web
     runtime: node
-    plan: starter
+    plan: free
     buildCommand: npm install && npx prisma generate && npm run build
     startCommand: npm start
     healthCheckPath: /api/health
@@ -23,7 +23,7 @@ services:
   - type: web
     name: aster-research-api
     runtime: python
-    plan: starter
+    plan: free
     rootDir: services/research-api
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
