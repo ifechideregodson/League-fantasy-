@@ -7,7 +7,7 @@ export default function ResearchPage() {
     <div style={{marginTop:34,color:"#7ce0c3",fontSize:11,letterSpacing:2,textTransform:"uppercase"}}>Research workspace</div>
     <h1 style={{fontSize:32,margin:"10px 0"}}>Start with a research question</h1>
     <p style={{color:"#91a0b7",lineHeight:1.7,maxWidth:680}}>This workspace will coordinate literature search, paper retrieval, evidence extraction and report drafting. Project persistence and agent execution are the next integration steps.</p>
-    <section style={{marginTop:28,padding:22,border:"1px solid #253249",borderRadius:16,background:"#101827"}}>
+    <Link href="/research/search" style={{display:"inline-flex",alignItems:"center",gap:8,marginTop:18,padding:"10px 13px",borderRadius:9,background:"#17243a",border:"1px solid #344662",color:"#dce8ff",fontSize:12}}>Search academic publications <Search size={14}/></Link>\n    <section style={{marginTop:28,padding:22,border:"1px solid #253249",borderRadius:16,background:"#101827"}}>
       <div style={{display:"flex",gap:12,alignItems:"center",marginBottom:16}}><FlaskConical color="#83a9ff"/><strong>New research project</strong></div>
       <label htmlFor="question" style={{display:"block",fontSize:12,color:"#aab7ca",marginBottom:8}}>Research question</label>
       <textarea id="question" placeholder="e.g. What evidence supports..." rows={5} style={{width:"100%",resize:"vertical",padding:14,borderRadius:10,border:"1px solid #344662",background:"#0b1220",color:"#eef3fb"}} />
