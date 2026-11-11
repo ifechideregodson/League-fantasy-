@@ -1,0 +1,39 @@
+services:
+  - type: web
+    name: aster-research-web
+    runtime: node
+    plan: starter
+    buildCommand: npm install && npx prisma generate && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: DATABASE_URL
+        sync: false
+      - key: AUTH_SECRET
+        generateValue: true
+      - key: RESEARCH_API_URL
+        fromService:
+          type: web
+          name: aster-research-api
+          property: host
+  - type: web
+    name: aster-research-api
+    runtime: python
+    plan: starter
+    rootDir: services/research-api
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_MODEL
+        value: gpt-4o-mini
+      - key: OPENALEX_EMAIL
+        sync: false
+      - key: CROSSREF_MAILTO
+        sync: false
