@@ -1,0 +1,147 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  OWNER
+  ADMIN
+  RESEARCHER
+  REVIEWER
+}
+
+enum ResearchJobStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String?
+  passwordHash String?
+  role         UserRole @default(RESEARCHER)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  projects     ResearchProject[] @relation("ProjectOwner")
+  memberships ProjectMember[]
+  auditEvents AuditEvent[]
+}
+
+model ResearchProject {
+  id          String   @id @default(cuid())
+  title       String
+  question    String
+  description String?
+  ownerId     String
+  owner       User     @relation("ProjectOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members     ProjectMember[]
+  jobs        ResearchJob[]
+  sources     ResearchSource[]
+  reports     ResearchReport[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  @@index([ownerId, updatedAt])
+}
+
+model ProjectMember {
+  id        String @id @default(cuid())
+  userId    String
+  projectId String
+  role      String @default("CONTRIBUTOR")
+  user      User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project   ResearchProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  @@unique([userId, projectId])
+}
+
+model ResearchJob {
+  id          String @id @default(cuid())
+  projectId   String
+  kind        String
+  status      ResearchJobStatus @default(QUEUED)
+  input       Json?
+  result      Json?
+  error       String?
+  project     ResearchProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+  startedAt   DateTime?
+  finishedAt  DateTime?
+  @@index([status, createdAt])
+  @@index([projectId, createdAt])
+}
+
+model ResearchSource {
+  id          String @id @default(cuid())
+  projectId   String
+  title       String
+  authors     String?
+  url         String?
+  doi         String?
+  sourceType  String
+  publishedAt DateTime?
+  storageKey  String?
+  checksum    String?
+  metadata    Json?
+  project     ResearchProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  citations   Citation[]
+  createdAt   DateTime @default(now())
+  @@index([projectId, createdAt])
+  @@unique([projectId, doi])
+}
+
+model ResearchReport {
+  id          String @id @default(cuid())
+  projectId   String
+  title       String
+  body        String
+  status      String @default("DRAFT")
+  project     ResearchProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  citations   Citation[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Citation {
+  id        String @id @default(cuid())
+  sourceId  String
+  reportId  String
+  locator   String?
+  quote     String?
+  source    ResearchSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  report    ResearchReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  @@index([reportId])
+}
+
+model ModelRecord {
+  id             String @id @default(cuid())
+  name           String
+  provider       String
+  version        String?
+  license        String?
+  intendedUse    String
+  validationNote String?
+  status         String @default("EVALUATION")
+  endpoint       String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model AuditEvent {
+  id        String @id @default(cuid())
+  actorId   String?
+  action    String
+  target    String?
+  details   Json?
+  actor     User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+  @@index([createdAt])
+}
