@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
   outgoing.set("question", question);
   try {
     const upstream = await fetch(new URL("/api/v1/papers/ask", base), {
-      method: "POST", body: outgoing, cache: "no-store", signal: AbortSignal.timeout(300000),
+      method: "POST", headers: { "Authorization": `Bearer ${process.env.RESEARCH_API_TOKEN || ""}` }, body: outgoing, cache: "no-store", signal: AbortSignal.timeout(300000),
     });
     const data = await upstream.json().catch(() => ({ error: "PaperQA2 returned invalid JSON." }));
     return NextResponse.json(data, { status: upstream.status, headers: { "Cache-Control": "no-store" } });
