@@ -9,7 +9,8 @@ export async function POST(request: NextRequest, context: { params: Promise<{ en
   const { engine } = await context.params;
   const path = paths[engine];
   if (!path) return NextResponse.json({ error: "Unknown research engine." }, { status: 404 });
-  const base = process.env.RESEARCH_API_URL;
+  const rawBase = process.env.RESEARCH_API_URL;
+  const base = rawBase ? (rawBase.startsWith("http://") || rawBase.startsWith("https://") ? rawBase : `http://${rawBase}`) : undefined;
   if (!base) return NextResponse.json({ error: "Research API is not configured." }, { status: 503 });
   let body: unknown;
   try { body = await request.json(); } catch { return NextResponse.json({ error: "Invalid JSON request." }, { status: 400 }); }
