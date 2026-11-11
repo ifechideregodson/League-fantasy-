@@ -1,20 +1,15 @@
+"use client";
 import Link from "next/link";
-import { ArrowLeft, FlaskConical, Search, FileText, Workflow } from "lucide-react";
-
-export default function ResearchPage() {
-  return <main style={{maxWidth:900,margin:"0 auto",padding:"48px 24px"}}>
-    <Link href="/" style={{color:"#91a0b7",fontSize:13}}><ArrowLeft size={14} style={{display:"inline",verticalAlign:"middle"}}/> Back to overview</Link>
-    <div style={{marginTop:34,color:"#7ce0c3",fontSize:11,letterSpacing:2,textTransform:"uppercase"}}>Research workspace</div>
-    <h1 style={{fontSize:32,margin:"10px 0"}}>Start with a research question</h1>
-    <p style={{color:"#91a0b7",lineHeight:1.7,maxWidth:680}}>This workspace will coordinate literature search, paper retrieval, evidence extraction and report drafting. Project persistence and agent execution are the next integration steps.</p>
-    <Link href="/research/search" style={{display:"inline-flex",alignItems:"center",gap:8,marginTop:18,padding:"10px 13px",borderRadius:9,background:"#17243a",border:"1px solid #344662",color:"#dce8ff",fontSize:12}}>Search academic publications <Search size={14}/></Link>\n    <section style={{marginTop:28,padding:22,border:"1px solid #253249",borderRadius:16,background:"#101827"}}>
-      <div style={{display:"flex",gap:12,alignItems:"center",marginBottom:16}}><FlaskConical color="#83a9ff"/><strong>New research project</strong></div>
-      <label htmlFor="question" style={{display:"block",fontSize:12,color:"#aab7ca",marginBottom:8}}>Research question</label>
-      <textarea id="question" placeholder="e.g. What evidence supports..." rows={5} style={{width:"100%",resize:"vertical",padding:14,borderRadius:10,border:"1px solid #344662",background:"#0b1220",color:"#eef3fb"}} />
-      <p style={{fontSize:11,color:"#91a0b7",lineHeight:1.6}}>Project submission will be enabled after authentication, database persistence and the research worker are connected. No placeholder action will pretend to launch a real research job.</p>
-    </section>
-    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(190px,1fr))",gap:12,marginTop:18}}>
-      {[["Academic search",Search],["Paper analysis",FileText],["Agent workflow",Workflow]].map(([name,Icon]) => { const I = Icon as typeof Search; return <div key={name as string} style={{padding:16,border:"1px solid #253249",borderRadius:12,color:"#cbd7e8",fontSize:12}}><I size={17} style={{marginBottom:9,color:"#83a9ff"}}/><div>{name as string}</div><div style={{color:"#91a0b7",marginTop:5}}>Integration pending</div></div>; })}
-    </div>
-  </main>;
+import {FormEvent,useState} from "react";
+import {ArrowLeft,LoaderCircle,Search} from "lucide-react";
+type Source={source_id:string;title:string;authors:string[];year:number|string|null;venue:string|null;url:string|null;provider:string};
+type Result={report:string;sources:Source[];provider_errors:Record<string,string>};
+export default function ResearchPage(){
+ const [question,setQuestion]=useState("");const [result,setResult]=useState<Result|null>(null);const [error,setError]=useState("");const [busy,setBusy]=useState(false);
+ async function submit(e:FormEvent<HTMLFormElement>){e.preventDefault();setBusy(true);setError("");setResult(null);try{const r=await fetch("/api/research/reports",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({question,limit:12})});const d=await r.json();if(!r.ok)throw new Error(d.detail||d.error||"Research request failed.");setResult(d)}catch(e){setError(e instanceof Error?e.message:"Research request failed.")}finally{setBusy(false)}}
+ return <main style={{maxWidth:1000,margin:"0 auto",padding:"42px 24px",color:"#eef3fb"}}><Link href="/" style={{color:"#91a0b7",fontSize:13}}><ArrowLeft size={14} style={{display:"inline",verticalAlign:"middle"}}/> Overview</Link><div style={{marginTop:30,color:"#7ce0c3",fontSize:11,letterSpacing:2,textTransform:"uppercase"}}>Live scholarly research</div><h1 style={{fontSize:32,margin:"10px 0"}}>Research question workspace</h1><p style={{color:"#91a0b7",lineHeight:1.7}}>Searches Crossref, OpenAlex and PubMed, then requests an AI synthesis from retrieved publication metadata. Full text is not retrieved in this version.</p>
+ <form onSubmit={submit} style={{marginTop:24,padding:20,border:"1px solid #253249",borderRadius:15,background:"#101827"}}><label htmlFor="question" style={{display:"block",fontSize:12,color:"#aab7ca",marginBottom:9}}>Your research question</label><textarea id="question" value={question} onChange={e=>setQuestion(e.target.value)} minLength={10} maxLength={2000} required rows={4} placeholder="What does current peer-reviewed research say about..." style={{width:"100%",resize:"vertical",padding:14,borderRadius:10,border:"1px solid #344662",background:"#0b1220",color:"#eef3fb"}}/><button className="btn primary" type="submit" disabled={busy} style={{marginTop:12}}>{busy?<LoaderCircle size={15}/>:<Search size={15}/ >}{busy?"Researching live sources...":"Run evidence search and synthesis"}</button></form>
+ {error&&<div role="alert" style={{marginTop:16,padding:14,border:"1px solid #754747",borderRadius:10,color:"#ffb7b7",fontSize:13}}>{error}</div>}
+ {result&&<section style={{marginTop:26}}><h2 style={{fontSize:20}}>Research synthesis</h2><p style={{fontSize:11,color:"#f3c77b"}}>Metadata-only evidence · Full text not retrieved</p><article style={{whiteSpace:"pre-wrap",lineHeight:1.8,fontSize:14,padding:20,border:"1px solid #253249",borderRadius:14,background:"#101827"}}>{result.report}</article><h2 style={{fontSize:18,marginTop:24}}>Retrieved sources ({result.sources.length})</h2><div style={{display:"grid",gap:10,marginTop:12}}>{result.sources.map(s=><article key={s.source_id} style={{padding:15,border:"1px solid #253249",borderRadius:12,background:"#101827"}}><strong style={{fontSize:13}}>[{s.source_id}] {s.title}</strong><p style={{fontSize:11,color:"#91a0b7"}}>{(s.authors||[]).slice(0,5).join(", ")} · {s.year||"Year unavailable"} · {s.venue||s.provider}</p>{s.url&&<a href={s.url} target="_blank" rel="noreferrer" style={{fontSize:11,color:"#91b4ff"}}>Open source ↗</a>}</article>)}</div>{Object.keys(result.provider_errors||{}).length>0&&<p style={{fontSize:11,color:"#e8bd81"}}>Provider errors: {Object.keys(result.provider_errors).join(", ")}</p>}</section>}
+ <p style={{fontSize:10,color:"#66758c",marginTop:28}}>Research output is not medical advice. Verify original publications before relying on conclusions.</p></main>
 }
