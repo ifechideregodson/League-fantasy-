@@ -13,7 +13,7 @@ class ReportRequest(BaseModel):
 @app.get("/health")
 async def health():return {"status":"ok","service":"research-api","version":"0.2.0"}
 @app.get("/api/v1/capabilities")
-async def capabilities():return {"academic_search":["Crossref","OpenAlex","PubMed"],"report_synthesis":"requires OPENAI_API_KEY","pdf_full_text_qa":"not_enabled","agent_frameworks":[],"clinical_inference":"disabled"}
+async def capabilities():return {"academic_search":["Crossref","OpenAlex","PubMed"],"report_synthesis":"requires OPENAI_API_KEY","pdf_full_text_qa":"not_enabled","clinical_inference":"disabled","integrations":integration_status()}
 @app.get("/api/v1/integrations")
 async def integrations():return integration_status()
 @app.post("/api/v1/search")
