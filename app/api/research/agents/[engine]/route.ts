@@ -15,7 +15,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ en
   try { body = await request.json(); } catch { return NextResponse.json({ error: "Invalid JSON request." }, { status: 400 }); }
   try {
     const upstream = await fetch(new URL(path, base), {
-      method: "POST", headers: { "Content-Type": "application/json" },
+      method: "POST", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${process.env.RESEARCH_API_TOKEN || ""}` },
       body: JSON.stringify(body), cache: "no-store", signal: AbortSignal.timeout(1800000),
     });
     const data = await upstream.json().catch(() => ({ error: "Research engine returned invalid JSON." }));
