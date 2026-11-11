@@ -19,7 +19,7 @@ services:
         fromService:
           type: web
           name: aster-research-api
-          property: host
+          property: hostport
   - type: web
     name: aster-research-api
     runtime: python
