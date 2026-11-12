@@ -2,7 +2,7 @@ fastapi==0.115.0
 uvicorn[standard]==0.30.6
 pydantic>=2.11.5,<3
 pydantic-settings>=2.4.0,<3
-python-dotenv==1.0.1
+python-dotenv>=1.2.2,<2
 httpx>=0.28.1,<1
 python-multipart>=0.0.9
 gpt-researcher>=0.14.0
