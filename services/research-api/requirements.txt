@@ -6,6 +6,5 @@ python-dotenv>=1.2.2,<2
 httpx>=0.28.1,<1
 python-multipart>=0.0.9
 gpt-researcher>=0.14.0
-knowledge-storm>=1.1.0
 paper-qa>=5.0.0
 pytest==8.3.3
