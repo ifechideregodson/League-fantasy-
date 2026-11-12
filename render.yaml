@@ -33,15 +33,7 @@ services:
         value: 3.12.8
       - key: RESEARCH_API_TOKEN
         sync: false
-      - key: OPENAI_API_KEY
-        sync: false
       - key: OPENAI_MODEL
         value: gpt-4o-mini
-      - key: TAVILY_API_KEY
-        sync: false
       - key: STORM_MODEL
         value: openai/gpt-4o-mini
-      - key: OPENALEX_EMAIL
-        sync: false
-      - key: CROSSREF_MAILTO
-        sync: false
