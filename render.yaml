@@ -4,7 +4,7 @@ services:
     runtime: python
     plan: free
     rootDir: services/research-api
-    buildCommand: pip install -r requirements.txt
+    buildCommand: pip install -r requirements.txt && python -m venv .storm-venv && .storm-venv/bin/pip install -r requirements-storm.txt
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
     envVars:
