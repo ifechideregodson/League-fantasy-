@@ -1,26 +1,5 @@
 services:
   - type: web
-    name: aster-research-web
-    runtime: node
-    plan: free
-    buildCommand: npm install && npx prisma generate && npm run build
-    startCommand: npm start
-    healthCheckPath: /api/health
-    envVars:
-      - key: NODE_VERSION
-        value: 22
-      - key: DATABASE_URL
-        sync: false
-      - key: AUTH_SECRET
-        generateValue: true
-      - key: RESEARCH_API_TOKEN
-        sync: false
-      - key: RESEARCH_API_URL
-        fromService:
-          type: web
-          name: aster-research-api
-          property: hostport
-  - type: web
     name: aster-research-api
     runtime: python
     plan: free
