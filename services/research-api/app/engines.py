@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import os
 import tempfile
 from pathlib import Path
@@ -28,80 +29,33 @@ async def run_gpt_researcher(query: str) -> dict[str, Any]:
         report = await researcher.write_report()
         sources = getattr(researcher, "get_research_sources", None)
         refs = await sources() if callable(sources) else []
-        return {
-            "engine": "GPT Researcher",
-            "query": query,
-            "report": str(report),
-            "sources": refs if isinstance(refs, list) else [],
-            "evidence_level": "web_research",
-        }
+        return {"engine": "GPT Researcher", "query": query, "report": str(report), "sources": refs if isinstance(refs, list) else [], "evidence_level": "web_research"}
 
     return await asyncio.wait_for(execute(), timeout=900)
 
 
 async def run_storm(topic: str) -> dict[str, Any]:
-    """Run Stanford's official knowledge-storm package; requires a search key."""
+    """Run Stanford STORM in its own isolated Python environment."""
     _required("OPENAI_API_KEY")
     _required("TAVILY_API_KEY")
+    worker_python = Path(__file__).resolve().parent.parent / ".storm-venv" / "bin" / "python"
+    worker_script = Path(__file__).resolve().parent / "storm_worker.py"
+    if not worker_python.exists() or not worker_script.exists():
+        raise RuntimeError("Stanford STORM worker environment is not installed. Check the Render build logs.")
+    process = await asyncio.create_subprocess_exec(str(worker_python), str(worker_script), topic, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE, env=os.environ.copy())
     try:
-        from knowledge_storm import STORMWikiRunnerArguments, STORMWikiRunner, STORMWikiLMConfigs
-        from knowledge_storm.lm import LitellmModel
-        from knowledge_storm.rm import TavilySearchRM
-    except ImportError as exc:
-        raise RuntimeError("Stanford knowledge-storm package is not installed.") from exc
-
-    def execute() -> dict[str, Any]:
-        with tempfile.TemporaryDirectory(prefix="aster-storm-") as output:
-            args = STORMWikiRunnerArguments(
-                output_dir=output,
-                max_conv_turn=3,
-                max_perspective=3,
-                search_top_k=5,
-                max_thread_num=3,
-            )
-            lm = LitellmModel(
-                model=os.getenv("STORM_MODEL", "openai/gpt-4o-mini"),
-                api_key=os.environ["OPENAI_API_KEY"],
-                temperature=0.2,
-                max_tokens=3000,
-            )
-            configs = STORMWikiLMConfigs()
-            configs.set_conv_simulator_lm(lm)
-            configs.set_question_asker_lm(lm)
-            configs.set_outline_gen_lm(lm)
-            configs.set_article_gen_lm(lm)
-            configs.set_article_polish_lm(lm)
-            retriever = TavilySearchRM(
-                tavily_search_api_key=os.environ["TAVILY_API_KEY"],
-                k=args.search_top_k,
-            )
-            runner = STORMWikiRunner(args, configs, retriever)
-            runner.run(
-                topic=topic,
-                do_research=True,
-                do_generate_outline=True,
-                do_generate_article=True,
-                do_polish_article=True,
-            )
-            runner.post_run()
-            files = [p for p in Path(output).rglob("*") if p.is_file() and p.suffix.lower() in {".md", ".txt"}]
-            documents = []
-            for path in files:
-                try:
-                    documents.append({"file": path.name, "content": path.read_text(encoding="utf-8")})
-                except (OSError, UnicodeError):
-                    continue
-            if not documents:
-                raise RuntimeError("STORM completed without producing a readable report file.")
-            return {
-                "engine": "Stanford STORM",
-                "topic": topic,
-                "report_files": documents,
-                "evidence_level": "web_research",
-                "note": "Review cited references in the generated report before relying on claims.",
-            }
-
-    return await asyncio.wait_for(asyncio.to_thread(execute), timeout=1800)
+        stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=1800)
+    except asyncio.TimeoutError:
+        process.kill()
+        await process.wait()
+        raise RuntimeError("Stanford STORM exceeded its 30-minute execution limit.")
+    if process.returncode != 0:
+        detail = stderr.decode("utf-8", errors="replace")[-4000:]
+        raise RuntimeError(f"Stanford STORM worker failed: {detail}")
+    try:
+        return json.loads(stdout.decode("utf-8"))
+    except (json.JSONDecodeError, UnicodeError) as exc:
+        raise RuntimeError("Stanford STORM worker returned invalid output.") from exc
 
 
 async def answer_paperqa(pdf_bytes: bytes, filename: str, question: str) -> dict[str, Any]:
@@ -111,13 +65,11 @@ async def answer_paperqa(pdf_bytes: bytes, filename: str, question: str) -> dict
         from paperqa import Docs
     except ImportError as exc:
         raise RuntimeError("PaperQA2 package is not installed.") from exc
-
     safe_name = Path(filename).name
     if not safe_name.lower().endswith(".pdf") or not pdf_bytes.startswith(b"%PDF-"):
         raise ValueError("Upload a valid PDF file.")
     if len(pdf_bytes) > 20 * 1024 * 1024:
         raise ValueError("PDF exceeds the 20 MB upload limit.")
-
     with tempfile.TemporaryDirectory(prefix="aster-paperqa-") as directory:
         path = Path(directory) / safe_name
         path.write_bytes(pdf_bytes)
@@ -127,12 +79,4 @@ async def answer_paperqa(pdf_bytes: bytes, filename: str, question: str) -> dict
         answer = str(session)
         if not answer.strip():
             raise RuntimeError("PaperQA2 returned an empty answer.")
-        return {
-            "engine": "PaperQA2",
-            "filename": safe_name,
-            "question": question,
-            "answer": answer,
-            "evidence_level": "uploaded_pdf_full_text",
-            "temporary_processing": True,
-            "note": "The uploaded PDF is processed in temporary storage and deleted after the request. This endpoint does not yet retain documents or indexes.",
-        }
+        return {"engine": "PaperQA2", "filename": safe_name, "question": question, "answer": answer, "evidence_level": "uploaded_pdf_full_text", "temporary_processing": True, "note": "The uploaded PDF is processed in temporary storage and deleted after the request. This endpoint does not yet retain documents or indexes."}
