@@ -3,7 +3,7 @@ uvicorn[standard]==0.30.6
 pydantic==2.9.2
 pydantic-settings==2.4.0
 python-dotenv==1.0.1
-httpx==0.27.2
+httpx>=0.28.1,<1
 python-multipart>=0.0.9
 gpt-researcher>=0.14.0
 knowledge-storm>=1.1.0
